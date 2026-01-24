@@ -1,65 +1,159 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import AddWidgetModal from "@/components/AddWidgetModal";
+import WidgetRenderer from "@/components/widgets/WidgetRenderer";
+import WidgetWrapper from "@/components/widgets/WidgetWrapper";
+import { useDashboardStore } from "@/store/dashboardStore";
+import ThemeToggle from "@/components/ThemeToggle";
+
+import {
+  DndContext,
+  closestCenter,
+  DragEndEvent,
+} from "@dnd-kit/core";
+
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+
+import { CSS } from "@dnd-kit/utilities";
+
+/* ---------------- Draggable Wrapper ---------------- */
+
+function DraggableWidget({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ---------------- Page ---------------- */
 
 export default function Home() {
+  const {
+    widgets,
+    addWidget,
+    removeWidget,
+    reorderWidgets,
+  } = useDashboardStore();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = widgets.findIndex(
+      (w) => w.id === active.id
+    );
+    const newIndex = widgets.findIndex(
+      (w) => w.id === over.id
+    );
+
+    reorderWidgets(oldIndex, newIndex);
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+        
+        <div>
+          <h1 className="text-xl font-semibold">
+            Finance Dashboard
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Build your custom finance dashboard
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* RIGHT SIDE ACTIONS */}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-md text-sm font-medium text-white"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            + Add Widget
+          </button>
         </div>
-      </main>
-    </div>
+      </header>
+
+      {/* Dashboard */}
+      <section className="p-6">
+        <DndContext
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={widgets.map((w) => w.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {widgets.map((widget) => (
+                <DraggableWidget
+                  key={widget.id}
+                  id={widget.id}
+                >
+                  <WidgetWrapper
+                    title={widget.title}
+                    onRemove={() =>
+                      removeWidget(widget.id)
+                    }
+                  >
+                    <WidgetRenderer widget={widget} />
+                  </WidgetWrapper>
+                </DraggableWidget>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </section>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <AddWidgetModal
+          onClose={() => setIsModalOpen(false)}
+          onAdd={(title, type, symbol) =>
+            addWidget({
+              id: crypto.randomUUID(),
+              title,
+              type,
+              symbol,
+            })
+          }
+        />
+      )}
+    </main>
   );
 }
