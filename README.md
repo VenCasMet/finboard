@@ -125,12 +125,18 @@ UI never crashes; graceful fallback messages are shown
 
 
 🧩 Problems Faced & Solutions
+
 Problem	Solution
-API rate limits	Multi-API fallback strategy
-Inconsistent API formats	Normalized service layer
-Charts breaking on refresh	Controlled loading & refetching
-Drag conflicts with buttons	Pointer event handling
-Theme visibility issues	Explicit Tailwind color control
+
+API rate limits--------------->	Multi-API fallback strategy
+
+Inconsistent API formats------>	Normalized service layer
+
+Charts breaking on refresh---->	Controlled loading & refetching
+
+Drag conflicts with buttons---> Pointer event handling
+
+Theme visibility issues------->	Explicit Tailwind color control
 
 
 
